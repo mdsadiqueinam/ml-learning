@@ -5,11 +5,11 @@ from math import sqrt
 
 class Vector:
 
-    def __init__(self, components: list):
+    def __init__(self, components: list[float]):
         self.__components = components
 
     @property
-    def components(self) -> list:
+    def components(self) -> list[float]:
         return self.__components.copy()
 
     @property
