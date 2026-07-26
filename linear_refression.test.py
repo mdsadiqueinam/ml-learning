@@ -1,5 +1,6 @@
 from linear_regression import LinearRegression
 from math_foundation.vector import Vector
+from optimizer import VanillaGD, MomentumGD
 
 # Adjust import path if needed
 
@@ -10,7 +11,7 @@ def test_linear_regression():
     # ---------------------------------------------------------
     # TEST 1: Pre-training predictions (Sanity Check)
     # ---------------------------------------------------------
-    model = LinearRegression()
+    model = LinearRegression(VanillaGD(learning_rate=0.0000001))
     X_dummy = Vector([10, 20, 30])
 
     # Since w=0 and b=0, predictions should be all zeros
@@ -32,11 +33,11 @@ def test_linear_regression():
     # ---------------------------------------------------------
     # TEST 3: Perfect Linear Data (y = 2x + 0)
     # ---------------------------------------------------------
-    model_perfect = LinearRegression()
+    model_perfect = LinearRegression(VanillaGD(learning_rate=0.1))
     X_perfect = Vector([1, 2, 3, 4])
     Y_perfect = Vector([2, 4, 6, 8])  # Exact slope of 2, no bias
 
-    model_perfect.fit(X_perfect, Y_perfect, learning_rate=0.1, epochs=100)
+    model_perfect.fit(X_perfect, Y_perfect, epochs=1000)
 
     assert (
         abs(model_perfect.w - 2.0) < 0.01
@@ -49,11 +50,11 @@ def test_linear_regression():
     # ---------------------------------------------------------
     # TEST 4: Perfect Linear Data WITH Bias (y = 3x + 5)
     # ---------------------------------------------------------
-    model_bias = LinearRegression()
+    model_bias = LinearRegression(VanillaGD(learning_rate=0.1))
     X_bias = Vector([0, 1, 2, 3])
     Y_bias = Vector([5, 8, 11, 14])  # Slope 3, Bias 5
 
-    model_bias.fit(X_bias, Y_bias, learning_rate=0.1, epochs=100)
+    model_bias.fit(X_bias, Y_bias, epochs=100)
 
     assert abs(model_bias.w - 3.0) < 0.01, f"Weight should be ~3.0, got {model_bias.w}"
     assert abs(model_bias.b - 5.0) < 0.01, f"Bias should be ~5.0, got {model_bias.b}"
@@ -62,7 +63,7 @@ def test_linear_regression():
     # ---------------------------------------------------------
     # TEST 5: Noisy Real-World Data (The House Pricing Example)
     # ---------------------------------------------------------
-    model_houses = LinearRegression()
+    model_houses = LinearRegression(MomentumGD(learning_rate=0.0000001, momentun=0.9))
     # Sq ft
     X_houses = Vector([1000, 1500, 2000, 2500])
     # Prices (Not perfectly linear, has some noise)
@@ -71,7 +72,7 @@ def test_linear_regression():
 
     # WARNING: Learning rate MUST be tiny because X values are huge!
     initial_house_mse = model_houses.mse(X_houses, Y_houses)
-    model_houses.fit(X_houses, Y_houses, learning_rate=0.0000001, epochs=1000)
+    model_houses.fit(X_houses, Y_houses, epochs=1000)
     final_house_mse = model_houses.mse(X_houses, Y_houses)
 
     assert final_house_mse < initial_house_mse, "MSE should go down after training!"
@@ -100,4 +101,56 @@ def test_linear_regression():
     print("=" * 40)
 
 
+def test_learning_rate_sweep():
+    print("=" * 60)
+    print("LEARNING RATE SWEEP (Training for only 20 Epochs each)")
+    print("=" * 60)
+
+    # Simple perfect data
+    X = Vector([1, 2, 3, 4])
+    Y = Vector([2, 4, 6, 8])
+
+    # A range of learning rates from massive to microscopic
+    learning_rates = [
+        0.5,  # Way too big
+        0.1,  # Still too big for this specific setup
+        0.05,  # Borderline
+        0.01,  # Just right
+        0.001,  # A bit slow
+        0.0001,  # Way too slow
+    ]
+
+    for lr in learning_rates:
+        # Create a fresh model for each test
+        model = LinearRegression(optimizer=VanillaGD(learning_rate=lr))
+
+        try:
+            # Train for only 20 epochs to see the trend quickly
+            model.fit(X, Y, epochs=20)
+            final_mse = model.mse(X, Y)
+
+            # Categorize the result based on the final error
+            if final_mse > 1000 or final_mse != final_mse:  # NaN check
+                status = "💥 EXPLODING (Diverging)"
+            elif final_mse > 1.0:
+                status = "🐢 TOO SLOW (Barely moving)"
+            else:
+                status = "✅ JUST RIGHT (Converging)"
+
+            print(f"LR: {lr:<6} | MSE: {final_mse:<20} | {status}")
+
+        except Exception as e:
+            # Catches math overflows if the numbers get too big for Python floats
+            print(
+                f"LR: {lr:<6} | MSE: CRASHED             | 💥 EXPLODED (Math Overflow)"
+            )
+
+    print("=" * 60)
+    print("CONCLUSION: Look at the LR that got the ✅. That is your winner.")
+    print("You would then use that LR for a full 1000-epoch run.")
+    print("=" * 60)
+
+
+# Run the sweep
 test_linear_regression()
+test_learning_rate_sweep()
