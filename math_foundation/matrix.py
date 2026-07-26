@@ -15,6 +15,10 @@ class Matrix:
         self.__data = data
 
     @property
+    def data(self) -> list[list[float]]:
+        return self.__data
+
+    @property
     def shape(self) -> tuple[int, int]:
         return (len(self.__data), len(self.__data[0]))
 

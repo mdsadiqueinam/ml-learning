@@ -178,7 +178,7 @@ class Vector:
         new_comp = list(map(lambda comp: comp / magnitube, self.__components))
         return Vector(new_comp)
 
-    def distance(self, other: Self) -> Self:
+    def distance(self, other: Self) -> float:
         """
         Calculates the straight-line difference between two data points.
         Used heavily in algorithms like K-Nearest Neighbors to find "similar" items.
@@ -194,3 +194,6 @@ class Vector:
 
         displacement_vector = self - other
         return displacement_vector.magnitude()
+
+    def get(self, index: int) -> float:
+        return self.__components[index]
